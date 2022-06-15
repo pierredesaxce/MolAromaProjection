@@ -1,10 +1,11 @@
 import os
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Circle
-from skimage import transform
-from skimage.io import imread, imshow
+from tkinter import *
+
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
 # dictionary of diverse value
 colorMol = {"C": "black", "H": "grey"}
@@ -12,13 +13,20 @@ sizeMol = {"C": 0.2, "H": 0.1}  # test // todo : ask if it's fine to do that. Al
 colorAroma = {0: (1, 0.898, 0.8), 1: (0.984, 0.984, 0.992), 2: (0.906, 0.906, 0.953), 3: (0.831, 0.831, 0.914),
               4: (0.753, 0.753, 0.875)}
 
+# Creating the GUI
+r = Tk()
+input_frame = Frame(r)
+input_frame.pack()
+output_frame = Frame(r)
+output_frame.pack(side=BOTTOM)
+
 
 def create_projection(filename):
     """Create a 2D projection of a molecule and it's aromaticity.
     :param filename: Location of a file that contain the data of the molecule (use the example in ressources for reference)
     """
 
-    fig, ax = plt.subplots(1, 2, figsize=(20, 10),
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5),
                            # figsize makes no sense, I just want a square ffs
                            # //todo : find a better way to do that crap ( best guess : 20 + ( max_y/max_x ) )
                            dpi=80)
@@ -77,7 +85,7 @@ def create_projection(filename):
             incr_aroma_y = float(cur_line[2])
             max_y = float(cur_line[4]) * incr_aroma_y
 
-            fig.set_figwidth(20 + max_y/max_x)
+            fig.set_figwidth(10 + (max_y / max_x) / 2)
 
             ax[0].set_ylim(ax[0].get_ylim()[::-1])  # invert the axis
             ax[0].xaxis.tick_top()  # and move the X-Axis
@@ -113,18 +121,29 @@ def create_projection(filename):
     # ax[0].imshow(sign)
 
     #  filename_to_save = input("nommer le fichier de sauvegarde (appuyez sur entrée pour ne pas faire de sauvegarde) : \n") //todo : uncomment that
-    filename_to_save = "essai.png"  # //todo : comment that
-    if not filename_to_save == '':
-        save = ""
-        if os.path.isfile(filenameToParse):
-            save = input("Ce fichier existe deja. L'ecraser ? [y/n] \n")
-        while save != "y" and save != "n":
-            save = input("Reponse incorrecte, veuillez re-essayer. L'ecraser ? [y/n] \n")
-        if save == "y":
-            plt.savefig(filename_to_save)
-            print("file saved")
+    #  filename_to_save = "essai.png"  # //todo : comment that
 
-    plt.show()  # show delete the graph after usage. ALWAYS AT THE END.
+    # plt.show()  # show delete the graph after usage. ALWAYS AT THE END.
+
+    for child in output_frame.winfo_children():
+        child.destroy()
+
+    graph_frame = Frame(output_frame)
+
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.draw()
+    # placing the canvas on the Tkinter window
+    canvas.get_tk_widget().pack()
+
+    # creating the Matplotlib toolbar
+    toolbar = NavigationToolbar2Tk(canvas, graph_frame)
+    toolbar.children['!button4'].pack_forget()
+    toolbar.update()
+
+    # placing the toolbar on the Tkinter window
+    canvas.get_tk_widget().pack()
+
+    graph_frame.pack()
 
 
 def get_aromaticity_color(aromaticity_value):
@@ -146,9 +165,19 @@ def get_aromaticity_color(aromaticity_value):
 
 
 if __name__ == '__main__':
-    #  filenameToParse = input("emplacement du fichier à parser : \n") //todo : uncomment that
-    filenameToParse = "ressources/test.txt"  # //todo : comment that
-    while not os.path.isfile(filenameToParse):
-        filenameToParse = input("chemin incorrect ou incomplet. veuillez re-essayer : \n")
+    # filename_to_parse = input("emplacement du fichier à parser : \n")  //todo : uncomment that
+    # filename_to_parse = "ressources/test.txt"  # //todo : comment that
+    # while not os.path.isfile(filename_to_parse):
+    #    filename_to_parse = input("chemin incorrect ou incomplet. veuillez re-essayer : \n")
+    # create_projection(filename_to_parse)
 
-    create_projection(filenameToParse)
+    r.title('MolAromaProjection')
+
+    Label(input_frame, text='emplacement du fichier à parser : ').grid(row=0, column=0)
+    entry = Entry(input_frame)
+    entry.grid(row=0, column=1)
+
+    button = Button(r, text='Parser', width=25, command=lambda: create_projection(entry.get()))
+    button.pack()
+
+    r.mainloop()
