@@ -116,7 +116,7 @@ def create_projection(filename):
     filename_to_save = "essai.png"  # //todo : comment that
     if not filename_to_save == '':
         save = ""
-        if os.path.isfile(filenameToParse):
+        if os.path.isfile(filename_to_save):
             save = input("Ce fichier existe deja. L'ecraser ? [y/n] \n")
         while save != "y" and save != "n":
             save = input("Reponse incorrecte, veuillez re-essayer. L'ecraser ? [y/n] \n")
