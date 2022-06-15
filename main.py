@@ -1,4 +1,5 @@
 import os
+from tkinter import filedialog
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,6 +16,7 @@ colorAroma = {0: (1, 0.898, 0.8), 1: (0.984, 0.984, 0.992), 2: (0.906, 0.906, 0.
 
 # Creating the GUI
 r = Tk()
+r.geometry("900x500")
 input_frame = Frame(r)
 input_frame.pack()
 output_frame = Frame(r)
@@ -25,6 +27,9 @@ def create_projection(filename):
     """Create a 2D projection of a molecule and it's aromaticity.
     :param filename: Location of a file that contain the data of the molecule (use the example in ressources for reference)
     """
+
+    for child in output_frame.winfo_children():
+        child.destroy()
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 5),
                            # figsize makes no sense, I just want a square ffs
@@ -52,6 +57,7 @@ def create_projection(filename):
     max_y = 0
     max_x = 0
 
+    # read the file to parse to find the data. //todo: check if the file is properly formatted and stop parsing if not.
     for line in file.readlines():
 
         cur_line = line.split()
@@ -125,9 +131,6 @@ def create_projection(filename):
 
     # plt.show()  # show delete the graph after usage. ALWAYS AT THE END.
 
-    for child in output_frame.winfo_children():
-        child.destroy()
-
     graph_frame = Frame(output_frame)
 
     canvas = FigureCanvasTkAgg(fig, master=graph_frame)
@@ -164,6 +167,18 @@ def get_aromaticity_color(aromaticity_value):
         return colorAroma[4]
 
 
+def browse_files():
+    filename = filedialog.askopenfilename(initialdir="./",
+                                          title="Choisir le fichier a parser",
+                                          filetypes=(("Text files",
+                                                      "*.txt*"),
+                                                     ("all files",
+                                                      "*.*")))
+
+    # Change label contents
+    entry.insert(0, filename)
+
+
 if __name__ == '__main__':
     # filename_to_parse = input("emplacement du fichier à parser : \n")  //todo : uncomment that
     # filename_to_parse = "ressources/test.txt"  # //todo : comment that
@@ -176,7 +191,10 @@ if __name__ == '__main__':
     Label(input_frame, text='emplacement du fichier à parser : ').grid(row=0, column=0)
     entry = Entry(input_frame)
     entry.grid(row=0, column=1)
-
+    button_file = Button(input_frame,
+                         text="Chercher le fichier",
+                         command=browse_files)
+    button_file.grid(row=0, column=2)
     button = Button(r, text='Parser', width=25, command=lambda: create_projection(entry.get()))
     button.pack()
 
