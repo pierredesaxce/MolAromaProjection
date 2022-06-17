@@ -10,6 +10,12 @@ You can download the code by using this command where you want it to be :
 git clone https://github.com/pierredesaxce/MolAromaProjection.git
 ```
 
+### Temporary
+After downloading the project, you'll be on the master branch which as not yet been updated, use this command to be on a functionning branch :
+
+```
+git checkout preprod
+```
 
 ## Requirements
 
