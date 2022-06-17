@@ -5,10 +5,55 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from tkinter import *
+from threading import Thread
 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
+from PIL import Image, ImageTk
+from itertools import count, cycle
+
+
+class ImageLabel(Label):
+    """
+    A Label that displays images, and plays them if they are gifs
+    :im: A PIL Image instance or a string filename
+    """
+
+    def load(self, im):
+        if isinstance(im, str):
+            im = Image.open(im)
+        frames = []
+
+        try:
+            for i in count(1):
+                frames.append(ImageTk.PhotoImage(im.copy()))
+                im.seek(i)
+        except EOFError:
+            pass
+        self.frames = cycle(frames)
+
+        try:
+            self.delay = im.info['duration']
+        except:
+            self.delay = 100
+
+        if len(frames) == 1:
+            self.config(image=next(self.frames))
+        else:
+            self.next_frame()
+
+    def unload(self):
+        self.config(image=None)
+        self.frames = None
+
+    def next_frame(self):
+        if self.frames:
+            self.config(image=next(self.frames))
+            self.after(self.delay, self.next_frame)
+
+
 # dictionary of diverse value
+
 colorMol = {"C": "black", "H": "grey"}
 sizeMol = {"C": 0.2, "H": 0.1}  # test // todo : ask if it's fine to do that. Also maybe let the user change the values
 colorAroma = {0: (1, 0.898, 0.8), 1: (0.984, 0.984, 0.992), 2: (0.906, 0.906, 0.953), 3: (0.831, 0.831, 0.914),
@@ -22,19 +67,25 @@ input_frame.pack()
 output_frame = Frame(r)
 output_frame.pack(side=BOTTOM)
 
+timer_id = None
 
 def create_projection(filename):
     """Create a 2D projection of a molecule and it's aromaticity.
     :param filename: Location of a file that contain the data of the molecule (use the example in ressources for reference)
     """
+    try:
+        file = open(filename, "r")
+    except :
+        return
+
+    waitGif.load("ressources/loading.gif")
 
     for child in output_frame.winfo_children():
         child.destroy()
 
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5),
-                           # figsize makes no sense, I just want a square ffs
-                           # //todo : find a better way to do that crap ( best guess : 20 + ( max_y/max_x ) )
-                           dpi=80)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5), dpi=80)
+    ax[0].set_aspect('equal', adjustable='box')
+    ax[1].set_aspect('equal', adjustable='box')
 
     # //todo : maybe put everything in a class and do the file reading in the constructor. (would need to send ax)
     list_mol = []
@@ -52,7 +103,7 @@ def create_projection(filename):
     # size = 0.1  # size of the molecule circle
     # DO NOT DELETE
 
-    file = open(filename, "r")
+
 
     max_y = 0
     max_x = 0
@@ -64,7 +115,7 @@ def create_projection(filename):
         print(cur_line)  # not needed // todo : remove at the end
 
         if len(cur_line) == 0:  # no word on the line => blank line separating aromaticity
-            if not origin_x is None:
+            if origin_x is not None:
                 list_aroma.append([])
 
         elif cur_line[0] == "origine":  # if the first word is "origine" => origin value
@@ -91,25 +142,34 @@ def create_projection(filename):
             incr_aroma_y = float(cur_line[2])
             max_y = float(cur_line[4]) * incr_aroma_y
 
-            fig.set_figwidth(10 + (max_y / max_x) / 2)
-
             ax[0].set_ylim(ax[0].get_ylim()[::-1])  # invert the axis
             ax[0].xaxis.tick_top()  # and move the X-Axis
-            ax[0].xaxis.set_ticks(np.arange(0, max_x, increment_value_x))  # set x-ticks
-            ax[0].yaxis.set_ticks(np.arange(0, max_y, increment_value_y))  # set y-ticks
+            ax[0].xaxis.set_ticks(np.arange(0, max_x + increment_value_x, increment_value_x))  # set x-ticks
+            ax[0].yaxis.set_ticks(np.arange(0, max_y + increment_value_y, increment_value_y))  # set y-ticks
             ax[0].yaxis.tick_left()  # move the Y-Axis
 
             # bis for the second graph
             ax[1].set_ylim(ax[1].get_ylim()[::-1])
             ax[1].xaxis.tick_top()
-            ax[1].xaxis.set_ticks(np.arange(0, max_x, increment_value_x))
-            ax[1].yaxis.set_ticks(np.arange(0, max_y, increment_value_y))
+            ax[1].xaxis.set_ticks(np.arange(0, max_x + increment_value_x, increment_value_x))
+            ax[1].yaxis.set_ticks(np.arange(0, max_y + increment_value_y, increment_value_y))
             ax[1].yaxis.tick_left()
 
         else:  # last option is always a molecule
             list_mol.append(cur_line)
 
     file.close()
+
+    # todo : optimize those two loops below to avoid duplicate code and save time
+    for i in range(round(1 / incr_aroma_x * increment_value_x)):
+        for j in range(round(max_y / incr_aroma_y)):
+            patch = plt.Circle((max_x + incr_aroma_x * i, incr_aroma_y * j), 0.1, facecolor=colorAroma[0])
+            ax[1].add_patch(patch)
+
+    for i in range(round(max_x / incr_aroma_x)):
+        for j in range(round(1 / incr_aroma_y * increment_value_y)):
+            patch = plt.Circle((incr_aroma_x * i, max_y + incr_aroma_y * j), 0.1, facecolor=colorAroma[0])
+            ax[1].add_patch(patch)
 
     for mol in list_mol:  # //todo : check if there's a way to do it in the first loop, would cut some of the processing time.
 
@@ -148,6 +208,8 @@ def create_projection(filename):
 
     graph_frame.pack()
 
+    waitGif.unload()
+
 
 def get_aromaticity_color(aromaticity_value):
     """
@@ -176,6 +238,7 @@ def browse_files():
                                                       "*.*")))
 
     # Change label contents
+    entry.delete(0, END)
     entry.insert(0, filename)
 
 
@@ -195,7 +258,12 @@ if __name__ == '__main__':
                          text="Chercher le fichier",
                          command=browse_files)
     button_file.grid(row=0, column=2)
-    button = Button(r, text='Parser', width=25, command=lambda: create_projection(entry.get()))
+    button = Button(r, text='Parser', width=25,
+                    command=lambda: Thread(target=create_projection, args=(entry.get(),)).start())
+
+    waitGif = ImageLabel(r)
+
     button.pack()
+    waitGif.pack()
 
     r.mainloop()
