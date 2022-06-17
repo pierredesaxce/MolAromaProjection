@@ -1,7 +1,5 @@
-import os
 from tkinter import filedialog
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from tkinter import *
