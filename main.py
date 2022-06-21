@@ -1,3 +1,4 @@
+import os
 from tkinter import filedialog
 
 import matplotlib.pyplot as plt
@@ -50,6 +51,15 @@ class ImageLabel(Label):
             self.after(self.delay, self.next_frame)
 
 
+r = Tk()
+r.geometry("900x500")
+input_frame = Frame(r)
+input_frame.pack()
+output_frame = Frame(r)
+output_frame.pack(side=BOTTOM)
+r.title('MolAromaProjection')
+waitGif = ImageLabel(r)
+entry = Entry(input_frame)
 # dictionary of diverse value
 
 colorMol = {"C": "black", "H": "grey"}
@@ -57,15 +67,60 @@ sizeMol = {"C": 0.2, "H": 0.1}  # test // todo : ask if it's fine to do that. Al
 colorAroma = {0: (1, 0.898, 0.8), 1: (0.984, 0.984, 0.992), 2: (0.906, 0.906, 0.953), 3: (0.831, 0.831, 0.914),
               4: (0.753, 0.753, 0.875)}
 
-# Creating the GUI
-r = Tk()
-r.geometry("900x500")
-input_frame = Frame(r)
-input_frame.pack()
-output_frame = Frame(r)
-output_frame.pack(side=BOTTOM)
-
 timer_id = None
+
+
+def interface_generate():
+    # Creating the GUI
+
+    Label(input_frame, text='emplacement du fichier à parser : ').grid(row=0, column=0)
+    entry.grid(row=0, column=1)
+    button_file = Button(input_frame,
+                         text="Chercher le fichier",
+                         command=browse_files)
+    button_file.grid(row=0, column=2)
+    button = Button(r, text='Parser', width=25,
+                    command=lambda: Thread(target=interface_create_projection, args=(entry.get(),)).start())
+
+    button.pack()
+    waitGif.pack()
+
+    r.mainloop()
+
+
+def interface_create_projection(filename):
+    waitGif.load("ressources/loading.gif")
+
+    for child in output_frame.winfo_children():
+        child.destroy()
+
+    graph_frame = Frame(output_frame)
+
+    canvas = FigureCanvasTkAgg(create_projection(filename), master=graph_frame)
+    canvas.draw()
+    # placing the canvas on the Tkinter window
+    canvas.get_tk_widget().pack()
+
+    # creating the Matplotlib toolbar
+    toolbar = NavigationToolbar2Tk(canvas, graph_frame)
+    toolbar.children['!button4'].pack_forget()
+    toolbar.update()
+
+    # placing the toolbar on the Tkinter window
+    canvas.get_tk_widget().pack()
+
+    graph_frame.pack()
+
+    waitGif.unload()
+
+
+def no_GUI_create_projection():
+    #filename_to_parse = input("emplacement du fichier à parser : \n")# // todo: uncomment that
+    filename_to_parse = "ressources/test.txt"  # //todo : comment that
+    while not os.path.isfile(filename_to_parse):
+        filename_to_parse = input("chemin incorrect ou incomplet. veuillez re-essayer : \n")
+    create_projection(filename_to_parse).show()
+
 
 def create_projection(filename):
     """Create a 2D projection of a molecule and it's aromaticity.
@@ -73,13 +128,8 @@ def create_projection(filename):
     """
     try:
         file = open(filename, "r")
-    except :
+    except:
         return
-
-    waitGif.load("ressources/loading.gif")
-
-    for child in output_frame.winfo_children():
-        child.destroy()
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 5), dpi=80)
     ax[0].set_aspect('equal', adjustable='box')
@@ -100,8 +150,6 @@ def create_projection(filename):
     # DO NOT DELETE
     # size = 0.1  # size of the molecule circle
     # DO NOT DELETE
-
-
 
     max_y = 0
     max_x = 0
@@ -189,24 +237,7 @@ def create_projection(filename):
 
     # plt.show()  # show delete the graph after usage. ALWAYS AT THE END.
 
-    graph_frame = Frame(output_frame)
-
-    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
-    canvas.draw()
-    # placing the canvas on the Tkinter window
-    canvas.get_tk_widget().pack()
-
-    # creating the Matplotlib toolbar
-    toolbar = NavigationToolbar2Tk(canvas, graph_frame)
-    toolbar.children['!button4'].pack_forget()
-    toolbar.update()
-
-    # placing the toolbar on the Tkinter window
-    canvas.get_tk_widget().pack()
-
-    graph_frame.pack()
-
-    waitGif.unload()
+    return fig
 
 
 def get_aromaticity_color(aromaticity_value):
@@ -246,22 +277,4 @@ if __name__ == '__main__':
     # while not os.path.isfile(filename_to_parse):
     #    filename_to_parse = input("chemin incorrect ou incomplet. veuillez re-essayer : \n")
     # create_projection(filename_to_parse)
-
-    r.title('MolAromaProjection')
-
-    Label(input_frame, text='emplacement du fichier à parser : ').grid(row=0, column=0)
-    entry = Entry(input_frame)
-    entry.grid(row=0, column=1)
-    button_file = Button(input_frame,
-                         text="Chercher le fichier",
-                         command=browse_files)
-    button_file.grid(row=0, column=2)
-    button = Button(r, text='Parser', width=25,
-                    command=lambda: Thread(target=create_projection, args=(entry.get(),)).start())
-
-    waitGif = ImageLabel(r)
-
-    button.pack()
-    waitGif.pack()
-
-    r.mainloop()
+    interface_generate()
